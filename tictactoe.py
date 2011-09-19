@@ -37,11 +37,16 @@ def main():
     screen = pygame.display.set_mode([300, 300])
     pygame.display.set_caption(CAPTION)
 
-    background, background_rect = load_image('background.png')
+    background, background_rect = load_image('grid.png')
     screen.blit(background, (0,0))
     pygame.display.flip()
 
     clock = pygame.time.Clock()
+
+    x = Cross()
+    x.rect.topleft = (10, 10)
+
+    sprites = pygame.sprite.RenderPlain((x))
 
     while True:
         clock.tick(MAXIMUM_FPS)
@@ -51,5 +56,10 @@ def main():
                 return
             elif event.type == KEYDOWN and event.key == K_ESCAPE:
                 return
+
+        sprites.update()
+        screen.blit(background, (0, 0))
+        sprites.draw(screen)
+        pygame.display.flip()
 
 if __name__ == "__main__": main()
