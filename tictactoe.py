@@ -95,12 +95,22 @@ class Grid(Sprite):
         verticals = [[(x, y) for x in range(3)] \
                      for y in range(3)]
         diagonals = [[(i, i) for i in range(3)],
-                     [(i, 2-1) for i in range(3)]]
+                     [(i, 2-i) for i in range(3)]]
         return horizontals + verticals + diagonals
 
     def get_spaces(self):
         """Returns a list of all the spaces in the grid."""
         return [(x, y) for y in range(3) for x in range(3)]
+
+    def no_moves_left(self):
+        """Returns if there are no more available moves."""
+        return all(self.get(*coord) for coord in self.get_spaces())
+
+    def is_end_game(self):
+        """Returns whether game at end state (i.e. someone has won or the
+        players have drawn because there are no more available moves).
+        """
+        return self.no_moves_left() or self.get_winner()
 
     def get_winner(self):
         for line in self.get_lines():
@@ -120,11 +130,15 @@ class Grid(Sprite):
 class ComputerBehaviourError(Exception): pass
 
 class Player(object):
+    """Represents a human tic tac toe player."""
     def __init__(self, grid, piece):
         self.grid = grid
         self.piece = piece
 
     def take_move(self, coords):
+        """Takes a move given mouse co-ordinates (and assuming the position in
+        the grid has not already been occupied.
+        """
         coords = self.grid.translate_coords(*coords)
         if self.grid.get(*coords) == None:
             self.grid.insert(coords[0], coords[1], self.piece())
@@ -176,8 +190,7 @@ class Computer(object):
             return mine == 1 and spaces == 2
 
         behaviours = (win_game,
-                      prevent_losing_game,
-                      attempt_winning_position)
+                      prevent_losing_game)
         
         lines = self.grid.get_lines()
 
@@ -201,34 +214,34 @@ class Computer(object):
 
         return argmax(empty_squares, score_square)
 
-def main():
-    pygame.init()
-    screen = pygame.display.set_mode([300, 300])
-    pygame.display.set_caption(CAPTION)
+def quit_on_quit_event(event):
+    if event.type == QUIT or \
+           (event.type == KEYDOWN and event.key == K_ESCAPE):
+        exit(0)
 
+def play(screen, player_piece=Nought):
+    """Plays a game!"""
     clock = pygame.time.Clock()
-    grid = Grid()
 
-    cpu = Computer(grid, Cross)
-    player = Player(grid, Nought)
+    cpu_piece = Nought if player_piece is Cross else Cross
+
+    grid = Grid()
+    cpu = Computer(grid, cpu_piece)
+    player = Player(grid, player_piece)
 
     turn = Cross
 
     while True:
-        winner = grid.get_winner()
-        if winner: print winner
+        if grid.is_end_game():
+            return grid.get_winner()
         
         if cpu.piece == turn:
             cpu.take_move()
             turn = player.piece
 
         for event in pygame.event.get():
-            if event.type == QUIT:
-                return
-            elif event.type == KEYDOWN and event.key == K_ESCAPE:
-                return
-            elif event.type == MOUSEBUTTONDOWN:
-                print event.pos
+            quit_on_quit_event(event)
+            if event.type == MOUSEBUTTONDOWN:
                 if player.take_move(event.pos):
                     turn = cpu.piece
 
@@ -236,5 +249,59 @@ def main():
         pygame.display.flip()
 
         clock.tick(MAXIMUM_FPS)
+
+# Not great that I have another game loop here - should probably set up some
+# kind of state machine to deal with different scenarios like the game over
+# screen
+def play_again(screen, state):
+    """Tells the user whether they won and asks them if they want to play
+    again.
+    """
+    font = pygame.font.Font(None, 36)
+
+    lines = ["You %s!" % state,
+             "Click to play again",
+             "(ESC to exit)"]
+
+    top = 5
+
+    for line in lines:
+        text = font.render(line, 1,
+                           (10, 10, 255))
+        textpos = text.get_rect(centerx=150, top=top)
+        screen.blit(text, textpos)
+        top += 40
+        
+    pygame.display.flip()
+
+    clock = pygame.time.Clock()
+
+    while True:
+        for event in pygame.event.get():
+            quit_on_quit_event(event)
+            if event.type == MOUSEBUTTONDOWN:
+                return True
+        clock.tick(MAXIMUM_FPS)
+        
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode([300, 300])
+    pygame.display.set_caption(CAPTION)
+    player = Nought
+
+    while True:
+        cpu = Nought if player is Cross else Cross
+        winner = play(screen, player)
+
+        if winner == player:
+            state = "won"
+        elif winner == cpu:
+            state = "lost"
+        else:
+            state = "drew"
+
+        if not play_again(screen, state):
+            return
+        player, cpu = cpu, player
 
 if __name__ == "__main__": main()
