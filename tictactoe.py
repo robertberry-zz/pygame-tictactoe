@@ -89,6 +89,10 @@ class Grid(Sprite):
                      [(i, 2-1) for i in range(3)]]
         return horizontals + verticals + diagonals
 
+    def get_spaces(self):
+        """Returns a list of all the spaces in the grid."""
+        return ((x, y) for y in range(3) for x in range(3))
+
 class ComputerBehaviourError(Exception): pass
 
 class Computer(object):
@@ -109,46 +113,51 @@ class Computer(object):
                     count_if(lambda x: isinstance(x, enemy_piece), line),
                     count_if(lambda x: x is None, line))
 
+        def get_middle_of_line(line):
+            coord = **line[1]
+            if self.grid.get(coord) == None:
+                return coord
+
         def first_empty_space(line):
             for coord in line:
                 if self.grid.get(**coord) == None:
                     return coord
             return None
 
-        def win_game(line):
-            mine, enemies, spaces = count_pieces(line)
-            if mine == 2 and spaces = 1:
-                return first_empty_space(line)
+        def win_game(mine, enemies, spaces):
+            return mine == 2 and spaces = 1
 
-        def prevent_losing_game(line):
-            mine, enemies, spaces = count_pieces(line)
-            if enemies == 2 and spaces = 1:
-                return first_empty_space(line)
+        def prevent_losing_game(mine, enemies, spaces):
+            return enemies == 2 and spaces = 1:
 
-        def attempt_winning_position(line):
-            mine, enemies, spaces = count_pieces(line)
-            if mine == 1 and spaces == 2:
-                return first_empty_space(line)
-
-        def get_middle_of_line(line):
-            coord = **line[1]
-            if self.grid.get(coord) == None:
-                return coord
+        def attempt_winning_position(mine, enemies, spaces):
+            return mine == 1 and spaces == 2:
 
         behaviours = (win_game,
                       prevent_losing_game,
-                      attempt_winning_position,
-                      get_middle_of_line,
-                      first_empty_space)
+                      attempt_winning_position)
         
         lines = self.grid.get_lines()
 
         for behaviour in behaviours:
             for line in lines:
-                coord = behaviour(line)
-                if coord: return coord
+                if behaviour(*count_pieces):
+                    return first_empty_space(line)
 
-        raise ComputerBehaviourError, "Could not find any available moves"
+        # score square based on how many empty squares exist in lines in which
+        # the co-ordinate is placed
+        def score_square(coord):
+            lines = (line for line in lines if coord in line)
+            empty_spaces = 0
+            for line in lines:
+                empty_spaces += count_if(lambda pos: pos != coord and \
+                                         self.grid.get(**pos) != None, line)
+            return empty_spaces
+
+        empty_squares = (x for x in self.grid.get_spaces() \
+                         if self.grid.get(**x) == None)
+
+        return argmax(empty_squares, score_square)
 
 def main():
     pygame.init()
