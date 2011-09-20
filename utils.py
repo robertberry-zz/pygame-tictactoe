@@ -1,4 +1,10 @@
+"""
+Utils file - argmin and argmax are taken from Peter Norvig's utils file
+(http://www.norvig.com)
 
+Author: Robert Berry
+Date: 21st September 2011
+"""
 
 def count_if(pred, seq):
     """Returns a count of all the elements in seq matching the predicate.
