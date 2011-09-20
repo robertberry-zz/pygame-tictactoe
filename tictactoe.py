@@ -61,9 +61,17 @@ class Grid(Sprite):
         nought or cross should be drawn for the given grid co-ordinates.
         """
         if not (0 <= x < 3 and 0 <= y < 3):
-            raise KeyError
+            raise KeyError, "(%d, %d) not in grid" % (x, y)
         
         return (10 + 100 * x, 10 + 100 * y)
+
+    def translate_coords(self, x, y):
+        """Given screen coordinates returns the corresponding coordinates in
+        the grid. Used for placing pieces when the user clicks on the screen.
+        >>> translate_coords(9, 14)
+        (0, 0)
+        """
+        return (x / 100, y / 100)
 
     def insert(self, x, y, piece):
         """Inserts a piece into the grid at the given co-ordinates."""
@@ -94,13 +102,44 @@ class Grid(Sprite):
         """Returns a list of all the spaces in the grid."""
         return [(x, y) for y in range(3) for x in range(3)]
 
+    def get_winner(self):
+        for line in self.get_lines():
+            noughts = 0
+            crosses = 0
+            for coord in line:
+                if isinstance(self.get(*coord), Nought):
+                    noughts += 1
+                elif isinstance(self.get(*coord), Cross):
+                    crosses += 1
+            if noughts == 3:
+                return Nought
+            elif crosses == 3:
+                return Cross
+        return None
+
 class ComputerBehaviourError(Exception): pass
+
+class Player(object):
+    def __init__(self, grid, piece):
+        self.grid = grid
+        self.piece = piece
+
+    def take_move(self, coords):
+        coords = self.grid.translate_coords(*coords)
+        if self.grid.get(*coords) == None:
+            self.grid.insert(coords[0], coords[1], self.piece())
+            return True
+        return False
 
 class Computer(object):
     """Represents a computer player for tic tac toe."""
     def __init__(self, grid, piece):
         self.grid = grid
         self.piece = piece
+
+    def take_move(self):
+        move = self.get_next_move()
+        self.grid.insert(move[0], move[1], self.piece())
 
     def get_next_move(self):
         """Uses the grid to figure out the next move the computer wants to
@@ -154,7 +193,7 @@ class Computer(object):
             empty_spaces = 0
             for line in related_lines:
                 empty_spaces += count_if(lambda pos: pos != coord and \
-                                         self.grid.get(*pos) != None, line)
+                                         self.grid.get(*pos) is None, line)
             return empty_spaces
 
         empty_squares = [x for x in self.grid.get_spaces() \
@@ -168,24 +207,34 @@ def main():
     pygame.display.set_caption(CAPTION)
 
     clock = pygame.time.Clock()
-
     grid = Grid()
-    grid.insert(0, 1, Nought())
-    grid.insert(1, 1, Cross())
 
-    cpu = Computer(grid, Nought)
-    print cpu.get_next_move()
+    cpu = Computer(grid, Cross)
+    player = Player(grid, Nought)
+
+    turn = Cross
 
     while True:
-        clock.tick(MAXIMUM_FPS)
+        winner = grid.get_winner()
+        if winner: print winner
+        
+        if cpu.piece == turn:
+            cpu.take_move()
+            turn = player.piece
 
         for event in pygame.event.get():
             if event.type == QUIT:
                 return
             elif event.type == KEYDOWN and event.key == K_ESCAPE:
                 return
+            elif event.type == MOUSEBUTTONDOWN:
+                print event.pos
+                if player.take_move(event.pos):
+                    turn = cpu.piece
 
         grid.draw(screen)
         pygame.display.flip()
+
+        clock.tick(MAXIMUM_FPS)
 
 if __name__ == "__main__": main()
