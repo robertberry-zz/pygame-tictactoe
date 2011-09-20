@@ -91,7 +91,7 @@ class Grid(Sprite):
 
     def get_spaces(self):
         """Returns a list of all the spaces in the grid."""
-        return ((x, y) for y in range(3) for x in range(3))
+        return [(x, y) for y in range(3) for x in range(3)]
 
 class ComputerBehaviourError(Exception): pass
 
@@ -108,30 +108,32 @@ class Computer(object):
         enemy_piece = Cross if self.piece is Nought else Nought
 
         def count_pieces(line):
-            pieces = (self.grid.get(**coord) for coord in line)
-            return (count_if(lambda x: isinstance(x, self.piece), line),
-                    count_if(lambda x: isinstance(x, enemy_piece), line),
-                    count_if(lambda x: x is None, line))
-
-        def get_middle_of_line(line):
-            coord = **line[1]
-            if self.grid.get(coord) == None:
-                return coord
+            pieces = (self.grid.get(*coord) for coord in line)
+            mine, enemies, spaces = 0, 0, 0
+            
+            for piece in pieces:
+                if isinstance(piece, self.piece):
+                    mine += 1
+                elif isinstance(piece, enemy_piece):
+                    enemies += 1
+                else:
+                    spaces += 1
+            return mine, enemies, spaces
 
         def first_empty_space(line):
             for coord in line:
-                if self.grid.get(**coord) == None:
+                if self.grid.get(*coord) == None:
                     return coord
             return None
 
         def win_game(mine, enemies, spaces):
-            return mine == 2 and spaces = 1
+            return mine == 2 and spaces == 1
 
         def prevent_losing_game(mine, enemies, spaces):
-            return enemies == 2 and spaces = 1:
+            return enemies == 2 and spaces == 1
 
         def attempt_winning_position(mine, enemies, spaces):
-            return mine == 1 and spaces == 2:
+            return mine == 1 and spaces == 2
 
         behaviours = (win_game,
                       prevent_losing_game,
@@ -141,21 +143,21 @@ class Computer(object):
 
         for behaviour in behaviours:
             for line in lines:
-                if behaviour(*count_pieces):
+                if behaviour(*count_pieces(line)):
                     return first_empty_space(line)
 
         # score square based on how many empty squares exist in lines in which
         # the co-ordinate is placed
         def score_square(coord):
-            lines = (line for line in lines if coord in line)
+            related_lines = [line for line in lines if coord in line]
             empty_spaces = 0
-            for line in lines:
+            for line in related_lines:
                 empty_spaces += count_if(lambda pos: pos != coord and \
-                                         self.grid.get(**pos) != None, line)
+                                         self.grid.get(*pos) != None, line)
             return empty_spaces
 
-        empty_squares = (x for x in self.grid.get_spaces() \
-                         if self.grid.get(**x) == None)
+        empty_squares = [x for x in self.grid.get_spaces() \
+                         if self.grid.get(*x) == None]
 
         return argmax(empty_squares, score_square)
 
@@ -166,10 +168,13 @@ def main():
 
     clock = pygame.time.Clock()
 
-    x = Cross()
     grid = Grid()
-    grid.insert(0, 0, x)
+    grid.insert(0, 0, Cross())
     grid.insert(0, 1, Nought())
+    grid.insert(1, 1, Cross())
+
+    cpu = Computer(grid, Nought)
+    print cpu.get_next_move()
 
     while True:
         clock.tick(MAXIMUM_FPS)
