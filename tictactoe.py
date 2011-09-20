@@ -76,12 +76,12 @@ class Grid(Sprite):
     def get_lines(self):
         """Returns lines, which if filled with pieces of one type indicate a
         winning state."""
-        horizontals = [[data[x][y] for y in range(3)] \
+        horizontals = [[self.data[x][y] for y in range(3)] \
                        for x in range(3)]
-        verticals = [[data[x][y] for x in range(3)] \
+        verticals = [[self.data[x][y] for x in range(3)] \
                      for y in range(3)]
-        diagonals = [[data[i][i] for i in range(3)],
-                     [data[i][2-i] for i in range(3)]]
+        diagonals = [[self.data[i][i] for i in range(3)],
+                     [self.data[i][2-i] for i in range(3)]]
         return horizontals + verticals + diagonals
 
 class Computer(object):
