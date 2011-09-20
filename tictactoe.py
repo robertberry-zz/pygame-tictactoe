@@ -69,6 +69,7 @@ class Grid(Sprite):
         """Inserts a piece into the grid at the given co-ordinates."""
         piece.rect.topleft = self.get_top_left(x, y)
         self.group.add(piece)
+        self.data[x][y] = piece
 
     def draw(self, screen):
         screen.blit(self.image, (0, 0))
@@ -169,7 +170,6 @@ def main():
     clock = pygame.time.Clock()
 
     grid = Grid()
-    grid.insert(0, 0, Cross())
     grid.insert(0, 1, Nought())
     grid.insert(1, 1, Cross())
 
